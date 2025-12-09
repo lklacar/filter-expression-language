@@ -11,11 +11,11 @@ import java.util.function.Predicate;
 
 /**
  * Benchmark demonstrating the JIT compiler performance.
- *
+ * <p>
  * The JIT compiler generates optimized JVM bytecode at runtime for filter expressions,
  * providing significantly better performance than the interpreted evaluation for
  * hot-path filtering operations.
- *
+ * <p>
  * This benchmark compares three approaches:
  * 1. Native Java - Hand-written Java lambda (baseline)
  * 2. Interpreted - Standard FEL expression evaluation
@@ -25,7 +25,7 @@ public class JitExample {
 
     @Data
     @AllArgsConstructor
-    static class User {
+    public static class User {
         private String name;
         private int age;
         private String city;
@@ -52,7 +52,7 @@ public class JitExample {
         String filterExpression = "age >= 30 && city = 'New York'";
         Predicate<User> nativeFilter = u -> u.getAge() >= 30 && "New York".equals(u.getCity());
         var interpretedFilter = Fel.filter(filterExpression);
-        var jitFilter = Fel.filterJit(filterExpression);
+        var jitFilter = Fel.filterJit(filterExpression, User.class);
 
         // Verify correctness
         System.out.println("=== Correctness Verification ===");
@@ -105,13 +105,13 @@ public class JitExample {
         long jitTime = System.nanoTime() - jitStart;
 
         // Format results
-        System.out.println("┌─────────────────────┬──────────────┬─────────────┬──────────────┐");
-        System.out.println("│ Implementation      │ Time (ms)    │ Relative    │ Throughput   │");
-        System.out.println("├─────────────────────┼──────────────┼─────────────┼──────────────┤");
+        System.out.println("┌─────────────────────┬──────────────┬─────────────┬─────────────────┐");
+        System.out.println("│ Implementation      │ Time (ms)    │ Relative    │ Throughput      │");
+        System.out.println("├─────────────────────┼──────────────┼─────────────┼─────────────────┤");
         printBenchmarkRow("Native Java", nativeTime, nativeTime, BENCHMARK_ITERATIONS, DATASET_SIZE);
         printBenchmarkRow("Interpreted", interpretedTime, nativeTime, BENCHMARK_ITERATIONS, DATASET_SIZE);
         printBenchmarkRow("JIT Compiled", jitTime, nativeTime, BENCHMARK_ITERATIONS, DATASET_SIZE);
-        System.out.println("└─────────────────────┴──────────────┴─────────────┴──────────────┘");
+        System.out.println("└─────────────────────┴──────────────┴─────────────┴─────────────────┘");
         System.out.println();
 
         System.out.println("=== Summary ===");
@@ -126,9 +126,9 @@ public class JitExample {
         System.out.println();
 
         Predicate<User> nativeComplexFilter = u ->
-            u.getName().toUpperCase().equals("ALICE") || (u.getAge() > 25 && !u.getCity().equals("Boston"));
+                u.getName().toUpperCase().equals("ALICE") || (u.getAge() > 25 && !u.getCity().equals("Boston"));
         var interpretedComplexFilter = Fel.filter(complexExpression);
-        var jitComplexFilter = Fel.filterJit(complexExpression);
+        var jitComplexFilter = Fel.filterJit(complexExpression, User.class);
 
         // Warmup complex
         for (int i = 0; i < WARMUP_ITERATIONS; i++) {
@@ -156,13 +156,13 @@ public class JitExample {
         }
         long jitComplexTime = System.nanoTime() - jitComplexStart;
 
-        System.out.println("┌─────────────────────┬──────────────┬─────────────┬──────────────┐");
-        System.out.println("│ Implementation      │ Time (ms)    │ Relative    │ Throughput   │");
-        System.out.println("├─────────────────────┼──────────────┼─────────────┼──────────────┤");
+        System.out.println("┌─────────────────────┬──────────────┬─────────────┬─────────────────┐");
+        System.out.println("│ Implementation      │ Time (ms)    │ Relative    │ Throughput      │");
+        System.out.println("├─────────────────────┼──────────────┼─────────────┼─────────────────┤");
         printBenchmarkRow("Native Java", nativeComplexTime, nativeComplexTime, BENCHMARK_ITERATIONS, DATASET_SIZE);
         printBenchmarkRow("Interpreted", interpretedComplexTime, nativeComplexTime, BENCHMARK_ITERATIONS, DATASET_SIZE);
         printBenchmarkRow("JIT Compiled", jitComplexTime, nativeComplexTime, BENCHMARK_ITERATIONS, DATASET_SIZE);
-        System.out.println("└─────────────────────┴──────────────┴─────────────┴──────────────┘");
+        System.out.println("└─────────────────────┴──────────────┴─────────────┴─────────────────┘");
         System.out.println();
 
         System.out.println("JIT vs Interpreted: " + String.format("%.2fx faster", (double) interpretedComplexTime / jitComplexTime));
@@ -188,7 +188,7 @@ public class JitExample {
         double relative = (double) timeNs / baselineNs;
         double throughputMillionOpsPerSec = (iterations * datasetSize / 1_000_000.0) / (timeNs / 1_000_000_000.0);
 
-        System.out.printf("│ %-19s │ %,12d │ %10.2fx │ %9.2f M/s │%n",
-            name, timeMs, relative, throughputMillionOpsPerSec);
+        System.out.printf("│ %-19s │ %,12d │ %10.2fx │ %9.2f M/s   │%n",
+                name, timeMs, relative, throughputMillionOpsPerSec);
     }
 }
