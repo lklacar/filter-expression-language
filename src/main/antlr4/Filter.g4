@@ -14,11 +14,11 @@ expression
     | left=expression OR right=expression                                                         # orExpression
     | IDENTIFIER                                                                                  # identifierExpression
     | STRING                                                                                      # stringExpression
+    | DATETIME                                                                                    # dateTimeExpression
     | LONG                                                                                        # longExpression
     | DOUBLE                                                                                      # doubleExpression
     | BOOLEAN                                                                                     # booleanExpression
     | NULL                                                                                        # nullExpression
-    | year=LONG '-' month=LONG '-' day=LONG ('T' hour=LONG ':' minute=LONG ':' second=LONG)?      # dateTimeExpression
     | function=IDENTIFIER LEFT_PAREN (expression (COMMA expression)*)? RIGHT_PAREN                # functionCallExpression
     ;
 
@@ -95,6 +95,10 @@ BOOLEAN
 
 IDENTIFIER
     : [a-zA-Z_] [a-zA-Z_0-9]*
+    ;
+
+DATETIME
+    : [0-9][0-9][0-9][0-9] '-' [0-9][0-9] '-' [0-9][0-9] ('T' [0-9][0-9] ':' [0-9][0-9] ':' [0-9][0-9] ('.' [0-9]+)?)?
     ;
 
 LONG

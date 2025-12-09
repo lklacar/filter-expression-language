@@ -85,14 +85,42 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
 
     @Override
     public ExpressionNode visitDateTimeExpression(FilterParser.DateTimeExpressionContext ctx) {
-        var year = Integer.parseInt(ctx.year.getText());
-        var month = Integer.parseInt(ctx.month.getText());
-        var day = Integer.parseInt(ctx.day.getText());
-        var hour = Optional.ofNullable(ctx.hour).map(h -> Integer.parseInt(h.getText())).orElse(0);
-        var minute = Optional.ofNullable(ctx.minute).map(m -> Integer.parseInt(m.getText())).orElse(0);
-        var second = Optional.ofNullable(ctx.second).map(s -> Integer.parseInt(s.getText())).orElse(0);
+        var text = ctx.getText();
 
-        var date = LocalDateTime.of(year, month, day, hour, minute, second);
+        // Parse: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS or YYYY-MM-DDTHH:MM:SS.fraction
+        var parts = text.split("T");
+        var datePart = parts[0];
+        var dateParts = datePart.split("-");
+
+        var year = Integer.parseInt(dateParts[0]);
+        var month = Integer.parseInt(dateParts[1]);
+        var day = Integer.parseInt(dateParts[2]);
+
+        int hour = 0, minute = 0, second = 0, nano = 0;
+
+        if (parts.length > 1) {
+            var timePart = parts[1];
+            var timeAndFraction = timePart.split("\\.");
+            var time = timeAndFraction[0];
+            var timeParts = time.split(":");
+
+            hour = Integer.parseInt(timeParts[0]);
+            minute = Integer.parseInt(timeParts[1]);
+            second = Integer.parseInt(timeParts[2]);
+
+            if (timeAndFraction.length > 1) {
+                String fractionText = timeAndFraction[1];
+                // Pad or truncate to 9 digits (nanoseconds)
+                if (fractionText.length() > 9) {
+                    fractionText = fractionText.substring(0, 9);
+                } else {
+                    fractionText = String.format("%-9s", fractionText).replace(' ', '0');
+                }
+                nano = Integer.parseInt(fractionText);
+            }
+        }
+
+        var date = LocalDateTime.of(year, month, day, hour, minute, second, nano);
         return new DateTimeExpressionNode(date);
     }
 
