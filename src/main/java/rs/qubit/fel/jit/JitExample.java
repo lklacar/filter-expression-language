@@ -33,9 +33,9 @@ public class JitExample {
 
     private static final String[] NAMES = {"Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Henry", "Ivy", "Jack"};
     private static final String[] CITIES = {"New York", "San Francisco", "Boston", "Chicago", "Seattle", "Austin", "Denver", "Portland"};
-    private static final int DATASET_SIZE = 10_000;
-    private static final int WARMUP_ITERATIONS = 50_000;
-    private static final int BENCHMARK_ITERATIONS = 500_000;
+    private static final int DATASET_SIZE = 1000;
+    private static final int WARMUP_ITERATIONS = 5000;
+    private static final int BENCHMARK_ITERATIONS = 50000;
 
     public static void main(String[] args) {
         System.out.println("╔════════════════════════════════════════════════════════════════╗");
@@ -167,6 +167,8 @@ public class JitExample {
 
         System.out.println("JIT vs Interpreted: " + String.format("%.2fx faster", (double) interpretedComplexTime / jitComplexTime));
         System.out.println("JIT vs Native: " + String.format("%.2fx", (double) jitComplexTime / nativeComplexTime));
+
+        System.out.println("Writing bytecode to disk for inspection...");
     }
 
     private static List<User> generateUsers(int count) {

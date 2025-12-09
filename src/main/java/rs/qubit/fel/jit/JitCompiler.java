@@ -37,6 +37,17 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
     private JitCompilerContext context;
 
     /**
+     * Writes JIT-compiled Predicate class bytecode to a file for inspection.
+     */
+    public void writeClassToFile(String className, byte[] bytecode) {
+        try (var fos = new java.io.FileOutputStream(className + ".class")) {
+            fos.write(bytecode);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to write class to file", e);
+        }
+    }
+
+    /**
      * Compiles an expression tree into a Predicate implementation.
      */
     public Predicate<Object> compile(ExpressionNode ast, VisitorContext visitorContext) {
@@ -64,6 +75,10 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
         // Load the generated class using the context class loader
         JitClassLoader loader = new JitClassLoader(Thread.currentThread().getContextClassLoader());
         Class<?> predicateClass = loader.defineClass(className.replace('/', '.'), bytecode);
+
+        // write bytecode to file for inspection (optional)
+         writeClassToFile(className.replace('/', '.'), bytecode);
+
 
         try {
             return (Predicate<Object>) predicateClass
