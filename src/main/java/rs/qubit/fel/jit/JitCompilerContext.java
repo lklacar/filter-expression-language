@@ -15,11 +15,13 @@ public class JitCompilerContext {
     private final GeneratorAdapter methodVisitor;
     private final String className;
     private final List<Object> constants;
+    private final Class<?> inputType;
 
-    public JitCompilerContext(GeneratorAdapter methodVisitor, String className) {
+    public JitCompilerContext(GeneratorAdapter methodVisitor, String className, Class<?> inputType) {
         this.methodVisitor = methodVisitor;
         this.className = className;
         this.constants = new ArrayList<>();
+        this.inputType = inputType;
     }
 
     /**

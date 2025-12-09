@@ -49,9 +49,15 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
 
     /**
      * Compiles an expression tree into a Predicate implementation.
+     *
+     * @param ast the expression AST to compile
+     * @param visitorContext the visitor context with functions and mappers
+     * @param inputType the class type of objects that will be filtered (null for Object)
+     * @return a compiled predicate
      */
-    public Predicate<Object> compile(ExpressionNode ast, VisitorContext visitorContext) {
+    public Predicate<Object> compile(ExpressionNode ast, VisitorContext visitorContext, Class<?> inputType) {
         String className = "rs/qubit/fel/jit/CompiledPredicate" + CLASS_COUNTER.incrementAndGet();
+        Class<?> actualInputType = inputType != null ? inputType : Object.class;
 
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
         cw.visit(V21, ACC_PUBLIC | ACC_SUPER, className, null,
@@ -66,14 +72,17 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
         generateConstructor(cw, className);
 
         // Generate test method
-        generateTestMethod(cw, className, ast);
+        generateTestMethod(cw, className, ast, actualInputType);
 
         cw.visitEnd();
 
         byte[] bytecode = cw.toByteArray();
 
-        // Load the generated class using the context class loader
-        JitClassLoader loader = new JitClassLoader(Thread.currentThread().getContextClassLoader());
+        // Load the generated class using the input type's class loader if available
+        ClassLoader parentLoader = actualInputType != Object.class
+                ? actualInputType.getClassLoader()
+                : Thread.currentThread().getContextClassLoader();
+        JitClassLoader loader = new JitClassLoader(parentLoader);
         Class<?> predicateClass = loader.defineClass(className.replace('/', '.'), bytecode);
 
         // write bytecode to file for inspection (optional)
@@ -105,11 +114,11 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
         constructor.visitEnd();
     }
 
-    private void generateTestMethod(ClassWriter cw, String className, ExpressionNode ast) {
+    private void generateTestMethod(ClassWriter cw, String className, ExpressionNode ast, Class<?> inputType) {
         Method testMethod = Method.getMethod("boolean test(Object)");
         mv = new GeneratorAdapter(ACC_PUBLIC, testMethod, null, null, cw);
 
-        context = new JitCompilerContext(mv, className);
+        context = new JitCompilerContext(mv, className, inputType);
 
         mv.visitCode();
 
@@ -297,24 +306,67 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
 
     @Override
     public Void visit(IdentifierExpressionNode node, JitCompilerContext ctx, Void record) {
-        // Load the record parameter
-        mv.loadArg(0);
+        String fieldName = node.value();
+        Class<?> inputType = ctx.getInputType();
 
-        // Push the field name
-        mv.push(node.value());
+        try {
+            // Get the field from the input type
+            java.lang.reflect.Field field = inputType.getDeclaredField(fieldName);
+            Class<?> fieldType = field.getType();
 
-        // Call ReflectionUtil.accessField(record, identifier)
-        mv.invokeStatic(Type.getType(ReflectionUtil.class),
-                Method.getMethod("Object accessField(Object, String)"));
+            // Load the record parameter (Object)
+            mv.loadArg(0);
 
-        // Load context to pass to parseValue
-        mv.loadThis();
-        mv.getField(Type.getObjectType(ctx.getClassName()), "context",
-                Type.getType(VisitorContext.class));
+            // Cast to the actual input type
+            mv.checkCast(Type.getType(inputType));
 
-        // Call helper method to parse the value
-        mv.invokeStatic(Type.getType(JitCompilerHelper.class),
-                Method.getMethod("rs.qubit.fel.evaluator.value.Value parseValue(Object, rs.qubit.fel.visitor.VisitorContext)"));
+            // Try to find and use a public getter method instead of direct field access
+            // This works better across classloaders
+            String getterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+            try {
+                java.lang.reflect.Method getter = inputType.getMethod(getterName);
+                // Call the getter method
+                mv.invokeVirtual(Type.getType(inputType),
+                        Method.getMethod(getter));
+
+                // Box primitive types if necessary
+                if (fieldType.isPrimitive()) {
+                    mv.valueOf(Type.getType(fieldType));
+                }
+            } catch (NoSuchMethodException e) {
+                // No getter found, try direct field access (only works for public fields)
+                mv.getField(Type.getType(inputType), fieldName, Type.getType(fieldType));
+
+                // Box primitive types if necessary
+                if (fieldType.isPrimitive()) {
+                    mv.valueOf(Type.getType(fieldType));
+                }
+            }
+
+            // Load context to pass to parseValue
+            mv.loadThis();
+            mv.getField(Type.getObjectType(ctx.getClassName()), "context",
+                    Type.getType(VisitorContext.class));
+
+            // Call helper method to parse the value
+            mv.invokeStatic(Type.getType(JitCompilerHelper.class),
+                    Method.getMethod("rs.qubit.fel.evaluator.value.Value parseValue(Object, rs.qubit.fel.visitor.VisitorContext)"));
+
+        } catch (NoSuchFieldException e) {
+            // Fallback to reflection if field not found at compile time
+            // This can happen with dynamic types or Object input type
+            mv.loadArg(0);
+            mv.push(fieldName);
+            mv.invokeStatic(Type.getType(ReflectionUtil.class),
+                    Method.getMethod("Object accessField(Object, String)"));
+
+            mv.loadThis();
+            mv.getField(Type.getObjectType(ctx.getClassName()), "context",
+                    Type.getType(VisitorContext.class));
+
+            mv.invokeStatic(Type.getType(JitCompilerHelper.class),
+                    Method.getMethod("rs.qubit.fel.evaluator.value.Value parseValue(Object, rs.qubit.fel.visitor.VisitorContext)"));
+        }
 
         return null;
     }
@@ -439,6 +491,67 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
 
     @Override
     public Void visit(DotExpressionNode node, JitCompilerContext ctx, Void record) {
+        String fieldName = node.field();
+
+        // Try to optimize if the object is an identifier (can determine type at compile time)
+        if (node.object() instanceof IdentifierExpressionNode identNode) {
+            String objectFieldName = identNode.value();
+            Class<?> inputType = ctx.getInputType();
+
+            try {
+                // Get the field type of the object
+                java.lang.reflect.Field objectField = inputType.getDeclaredField(objectFieldName);
+                Class<?> objectType = objectField.getType();
+
+                // Get the nested field
+                java.lang.reflect.Field nestedField = objectType.getDeclaredField(fieldName);
+                Class<?> nestedFieldType = nestedField.getType();
+
+                // Load the record parameter (Object)
+                mv.loadArg(0);
+
+                // Cast to the actual input type
+                mv.checkCast(Type.getType(inputType));
+
+                // Access the object field using getter or direct access
+                String objectGetterName = "get" + Character.toUpperCase(objectFieldName.charAt(0)) + objectFieldName.substring(1);
+                try {
+                    java.lang.reflect.Method objectGetter = inputType.getMethod(objectGetterName);
+                    mv.invokeVirtual(Type.getType(inputType), Method.getMethod(objectGetter));
+                } catch (NoSuchMethodException e) {
+                    mv.getField(Type.getType(inputType), objectFieldName, Type.getType(objectType));
+                }
+
+                // Access the nested field using getter or direct access
+                String nestedGetterName = "get" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+                try {
+                    java.lang.reflect.Method nestedGetter = objectType.getMethod(nestedGetterName);
+                    mv.invokeVirtual(Type.getType(objectType), Method.getMethod(nestedGetter));
+                } catch (NoSuchMethodException e) {
+                    mv.getField(Type.getType(objectType), fieldName, Type.getType(nestedFieldType));
+                }
+
+                // Box primitive types if necessary
+                if (nestedFieldType.isPrimitive()) {
+                    mv.valueOf(Type.getType(nestedFieldType));
+                }
+
+                // Load context to pass to parseValue
+                mv.loadThis();
+                mv.getField(Type.getObjectType(ctx.getClassName()), "context",
+                        Type.getType(VisitorContext.class));
+
+                // Call helper method to parse the value
+                mv.invokeStatic(Type.getType(JitCompilerHelper.class),
+                        Method.getMethod("rs.qubit.fel.evaluator.value.Value parseValue(Object, rs.qubit.fel.visitor.VisitorContext)"));
+
+                return null;
+            } catch (NoSuchFieldException e) {
+                // Fall through to reflection-based approach
+            }
+        }
+
+        // Fallback: use reflection-based approach
         // Evaluate the object expression
         node.object().accept(this, ctx, record);
 
@@ -447,7 +560,7 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
                 Method.getMethod("Object asObject()"));
 
         // Push the field name
-        mv.push(node.field());
+        mv.push(fieldName);
 
         // Call ReflectionUtil.accessField
         mv.invokeStatic(Type.getType(ReflectionUtil.class),
