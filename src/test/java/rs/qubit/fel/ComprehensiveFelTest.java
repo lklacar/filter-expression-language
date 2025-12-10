@@ -196,8 +196,12 @@ class ComprehensiveFelTest {
         Predicate<Object> interpretedFilter = Fel.filter(expression);
         assertEquals(expectedResult, interpretedFilter.test(entity), "Interpreted mode failed for: " + expression);
 
-        // Test JIT Mode
+        // Test JIT Mode with direct access
         Predicate<Object> jitFilter = Fel.filterJit(expression, TestEntity.class);
         assertEquals(expectedResult, jitFilter.test(entity), "JIT mode failed for: " + expression);
+
+        // Test JIT Mode with reflection access
+        Predicate<Object> jitFilterReflection = Fel.filterJit(expression);
+        assertEquals(expectedResult, jitFilterReflection.test(entity), "JIT mode with reflection failed for: " + expression);
     }
 }

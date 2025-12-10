@@ -60,12 +60,14 @@ public class JitBenchmark {
         String simpleExpression;
         Predicate<User> nativeSimpleFilter;
         FelPredicate interpretedSimpleFilter;
-        FelPredicate jitSimpleFilter;
+        FelPredicate jitSimpleFilter;              // JIT with direct access
+        FelPredicate jitSimpleReflectionFilter;    // JIT with reflection
 
         String complexExpression;
         Predicate<User> nativeComplexFilter;
         FelPredicate interpretedComplexFilter;
-        FelPredicate jitComplexFilter;
+        FelPredicate jitComplexFilter;             // JIT with direct access
+        FelPredicate jitComplexReflectionFilter;   // JIT with reflection
 
         @Setup(Level.Trial)
         public void setup() {
@@ -76,31 +78,39 @@ public class JitBenchmark {
             users = generateUsers(DATASET_SIZE);
             System.out.println("Dataset size: " + users.size() + " entities\n");
 
+            // Simple expression
             simpleExpression = "age >= 30 && city = 'New York'";
             nativeSimpleFilter = u -> u.getAge() >= 30 && "New York".equals(u.getCity());
             interpretedSimpleFilter = Fel.filter(simpleExpression);
-            jitSimpleFilter = Fel.filterJit(simpleExpression, User.class);
+            jitSimpleFilter = Fel.filterJit(simpleExpression, User.class);  // direct access
+            jitSimpleReflectionFilter = Fel.filterJit(simpleExpression);    // reflection access
 
             System.out.println("=== Correctness Verification (Simple) ===");
             var nativeSimpleResult = users.stream().filter(nativeSimpleFilter).toList();
             var interpretedSimpleResult = users.stream().filter(interpretedSimpleFilter).toList();
             var jitSimpleResult = users.stream().filter(jitSimpleFilter).toList();
+            var jitSimpleReflectionResult = users.stream().filter(jitSimpleReflectionFilter).toList();
 
             System.out.println("Expression: " + simpleExpression);
             System.out.println("Native Java matches: " + nativeSimpleResult.size());
             System.out.println("Interpreted matches: " + interpretedSimpleResult.size());
-            System.out.println("JIT Compiled matches: " + jitSimpleResult.size());
+            System.out.println("JIT Compiled (direct) matches: " + jitSimpleResult.size());
+            System.out.println("JIT Compiled (reflection) matches: " + jitSimpleReflectionResult.size());
 
-            if (nativeSimpleResult.size() != interpretedSimpleResult.size()
-                    || nativeSimpleResult.size() != jitSimpleResult.size()) {
+            var simpleExpected = nativeSimpleResult.size();
+            if (simpleExpected != interpretedSimpleResult.size()
+                    || simpleExpected != jitSimpleResult.size()
+                    || simpleExpected != jitSimpleReflectionResult.size()) {
                 throw new IllegalStateException("Simple expression results differ between implementations");
             }
 
+            // Complex expression
             complexExpression = "toUpperCase(name) = 'ALICE' || (age > 25 && city != 'Boston')";
             nativeComplexFilter = u -> u.getName().toUpperCase().equals("ALICE")
                     || (u.getAge() > 25 && !"Boston".equals(u.getCity()));
             interpretedComplexFilter = Fel.filter(complexExpression);
-            jitComplexFilter = Fel.filterJit(complexExpression, User.class);
+            jitComplexFilter = Fel.filterJit(complexExpression, User.class);  // direct access
+            jitComplexReflectionFilter = Fel.filterJit(complexExpression);    // reflection access
 
             System.out.println("\n=== Correctness Verification (Complex) ===");
             System.out.println("Expression: " + complexExpression);
@@ -108,13 +118,17 @@ public class JitBenchmark {
             var nativeComplexResult = users.stream().filter(nativeComplexFilter).toList();
             var interpretedComplexResult = users.stream().filter(interpretedComplexFilter).toList();
             var jitComplexResult = users.stream().filter(jitComplexFilter).toList();
+            var jitComplexReflectionResult = users.stream().filter(jitComplexReflectionFilter).toList();
 
             System.out.println("Native Java matches: " + nativeComplexResult.size());
             System.out.println("Interpreted matches: " + interpretedComplexResult.size());
-            System.out.println("JIT Compiled matches: " + jitComplexResult.size());
+            System.out.println("JIT Compiled (direct) matches: " + jitComplexResult.size());
+            System.out.println("JIT Compiled (reflection) matches: " + jitComplexReflectionResult.size());
 
-            if (nativeComplexResult.size() != interpretedComplexResult.size()
-                    || nativeComplexResult.size() != jitComplexResult.size()) {
+            var complexExpected = nativeComplexResult.size();
+            if (complexExpected != interpretedComplexResult.size()
+                    || complexExpected != jitComplexResult.size()
+                    || complexExpected != jitComplexReflectionResult.size()) {
                 throw new IllegalStateException("Complex expression results differ between implementations");
             }
 
@@ -138,6 +152,11 @@ public class JitBenchmark {
     }
 
     @Benchmark
+    public List<User> simpleJitReflectionFilter(BenchmarkState state) {
+        return state.users.stream().filter(state.jitSimpleReflectionFilter).toList();
+    }
+
+    @Benchmark
     public List<User> complexNativeFilter(BenchmarkState state) {
         return state.users.stream().filter(state.nativeComplexFilter).toList();
     }
@@ -150,6 +169,11 @@ public class JitBenchmark {
     @Benchmark
     public List<User> complexJitFilter(BenchmarkState state) {
         return state.users.stream().filter(state.jitComplexFilter).toList();
+    }
+
+    @Benchmark
+    public List<User> complexJitReflectionFilter(BenchmarkState state) {
+        return state.users.stream().filter(state.jitComplexReflectionFilter).toList();
     }
 
     private static List<User> generateUsers(int count) {
