@@ -1,5 +1,6 @@
 package rs.qubit.fel.jit;
 
+import lombok.Getter;
 import org.openjdk.jmh.annotations.*;
 import rs.qubit.fel.Fel;
 import rs.qubit.fel.FelPredicate;
@@ -17,6 +18,8 @@ import java.util.function.Predicate;
 @Fork(1)
 public class JitBenchmark {
 
+    @SuppressWarnings("ClassCanBeRecord")
+    @Getter
     public static class User {
         private final String name;
         private final int age;
@@ -26,18 +29,6 @@ public class JitBenchmark {
             this.name = name;
             this.age = age;
             this.city = city;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public int getAge() {
-            return age;
-        }
-
-        public String getCity() {
-            return city;
         }
     }
 
@@ -106,7 +97,7 @@ public class JitBenchmark {
 
             // Complex expression
             complexExpression = "toUpperCase(name) = 'ALICE' || (age > 25 && city != 'Boston')";
-            nativeComplexFilter = u -> u.getName().toUpperCase().equals("ALICE")
+            nativeComplexFilter = u -> u.getName().equalsIgnoreCase("ALICE")
                     || (u.getAge() > 25 && !"Boston".equals(u.getCity()));
             interpretedComplexFilter = Fel.filter(complexExpression);
             jitComplexFilter = Fel.filterJit(complexExpression, User.class);  // direct access
