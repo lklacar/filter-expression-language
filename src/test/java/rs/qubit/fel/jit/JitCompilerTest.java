@@ -144,6 +144,34 @@ class JitCompilerTest {
     }
 
     @Test
+    void jitFilterMapsByKey() {
+        var records = List.of(
+                java.util.Map.of("name", "John", "age", 25),
+                java.util.Map.of("name", "Jane", "age", 30));
+
+        var filter = Fel.filterJit("age >= 30");
+
+        var result = records.stream().filter(filter).toList();
+
+        assertEquals(1, result.size());
+        assertEquals("Jane", result.get(0).get("name"));
+    }
+
+    @Test
+    void jitFilterNestedMapsByDot() {
+        var records = List.of(
+                java.util.Map.of("address", java.util.Map.of("city", "Paris")),
+                java.util.Map.of("address", java.util.Map.of("city", "Belgrade")));
+
+        var filter = Fel.filterJit("address.city = 'Belgrade'");
+
+        var result = records.stream().filter(filter).toList();
+
+        assertEquals(1, result.size());
+        assertEquals("Belgrade", ((java.util.Map<?, ?>) result.get(0).get("address")).get("city"));
+    }
+
+    @Test
     void jitFilterByMultipleConditions() {
         var users = List.of(
                 new User("Dave", 44, LocalDateTime.now(), new Address("New York", "Fifth Avenue", 1)),

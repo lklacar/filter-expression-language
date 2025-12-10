@@ -7,6 +7,11 @@ public class ReflectionUtil {
             throw new rs.qubit.fel.exception.FilterException("Cannot access field '%s' on null".formatted(fieldName));
         }
 
+        // Map access by key
+        if (object instanceof java.util.Map<?, ?> map) {
+            return map.get(fieldName);
+        }
+
         var type = object.getClass();
 
         // Prefer a public getter if present; this is more resilient across classloaders and proxies.

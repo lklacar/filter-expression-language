@@ -142,6 +142,34 @@ class FelTest {
     }
 
     @Test
+    void filterMapsByKey() {
+        var records = List.of(
+                java.util.Map.of("name", "John", "age", 25),
+                java.util.Map.of("name", "Jane", "age", 30));
+
+        var filter = Fel.filter("age >= 30");
+
+        var result = records.stream().filter(filter).toList();
+
+        assertEquals(1, result.size());
+        assertEquals("Jane", result.get(0).get("name"));
+    }
+
+    @Test
+    void filterNestedMapsByDot() {
+        var records = List.of(
+                java.util.Map.of("address", java.util.Map.of("city", "Paris")),
+                java.util.Map.of("address", java.util.Map.of("city", "Belgrade")));
+
+        var filter = Fel.filter("address.city = 'Belgrade'");
+
+        var result = records.stream().filter(filter).toList();
+
+        assertEquals(1, result.size());
+        assertEquals("Belgrade", ((java.util.Map<?, ?>) result.get(0).get("address")).get("city"));
+    }
+
+    @Test
     void filterByMultipleConditions() {
         var users = List.of(
                 new User("Dave", 44, LocalDateTime.now(), new Address("New York", "Fifth Avenue", 1)),

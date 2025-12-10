@@ -110,6 +110,9 @@ public class FilterEvaluator implements ExpressionVisitor<Value, VisitorContext,
                 yield Optional.ofNullable(parser)
                         .map(p -> p.apply(value))
                         .orElseGet(() -> {
+                            if (value instanceof java.util.Map<?, ?>) {
+                                return new ObjectValue(o);
+                            }
                             var isJavaObject = value.getClass().getName().startsWith("java");
                             if (isJavaObject) {
                                 throw new FilterException("Cannot convert java object %s to a filter value".formatted(value.getClass().getName()));

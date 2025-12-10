@@ -7,6 +7,7 @@ import rs.qubit.fel.FelPredicate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -47,12 +48,18 @@ public class JitBenchmark {
     @State(Scope.Benchmark)
     public static class BenchmarkState {
         List<User> users;
+        List<Map<String, Object>> mapRecords;
 
         String simpleExpression;
         Predicate<User> nativeSimpleFilter;
         FelPredicate interpretedSimpleFilter;
         FelPredicate jitSimpleFilter;              // JIT with direct access
         FelPredicate jitSimpleReflectionFilter;    // JIT with reflection
+
+        String mapExpression;
+        Predicate<Map<String, Object>> nativeMapFilter;
+        FelPredicate interpretedMapFilter;
+        FelPredicate jitMapFilter;
 
         String complexExpression;
         Predicate<User> nativeComplexFilter;
@@ -67,6 +74,9 @@ public class JitBenchmark {
             System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
 
             users = generateUsers(DATASET_SIZE);
+            mapRecords = users.stream()
+                    .map(u -> Map.<String, Object>of("name", u.getName(), "age", u.getAge(), "city", u.getCity()))
+                    .toList();
             System.out.println("Dataset size: " + users.size() + " entities\n");
 
             // Simple expression
@@ -75,6 +85,12 @@ public class JitBenchmark {
             interpretedSimpleFilter = Fel.filter(simpleExpression);
             jitSimpleFilter = Fel.filterJit(simpleExpression, User.class);  // direct access
             jitSimpleReflectionFilter = Fel.filterJit(simpleExpression);    // reflection access
+
+            // Map expression (object mode)
+            mapExpression = "age >= 30 && city = 'New York'";
+            nativeMapFilter = m -> ((int) m.get("age")) >= 30 && "New York".equals(m.get("city"));
+            interpretedMapFilter = Fel.filter(mapExpression);
+            jitMapFilter = Fel.filterJit(mapExpression);
 
             System.out.println("=== Correctness Verification (Simple) ===");
             var nativeSimpleResult = users.stream().filter(nativeSimpleFilter).toList();
@@ -93,6 +109,22 @@ public class JitBenchmark {
                     || simpleExpected != jitSimpleResult.size()
                     || simpleExpected != jitSimpleReflectionResult.size()) {
                 throw new IllegalStateException("Simple expression results differ between implementations");
+            }
+
+            System.out.println("\n=== Correctness Verification (Map) ===");
+            var nativeMapResult = mapRecords.stream().filter(nativeMapFilter).toList();
+            var interpretedMapResult = mapRecords.stream().filter(interpretedMapFilter).toList();
+            var jitMapResult = mapRecords.stream().filter(jitMapFilter).toList();
+
+            System.out.println("Expression: " + mapExpression);
+            System.out.println("Native Java matches: " + nativeMapResult.size());
+            System.out.println("Interpreted matches: " + interpretedMapResult.size());
+            System.out.println("JIT Compiled (map) matches: " + jitMapResult.size());
+
+            var mapExpected = nativeMapResult.size();
+            if (mapExpected != interpretedMapResult.size()
+                    || mapExpected != jitMapResult.size()) {
+                throw new IllegalStateException("Map expression results differ between implementations");
             }
 
             // Complex expression
@@ -165,6 +197,21 @@ public class JitBenchmark {
     @Benchmark
     public List<User> complexJitReflectionFilter(BenchmarkState state) {
         return state.users.stream().filter(state.jitComplexReflectionFilter).toList();
+    }
+
+    @Benchmark
+    public List<Map<String, Object>> mapNativeFilter(BenchmarkState state) {
+        return state.mapRecords.stream().filter(state.nativeMapFilter).toList();
+    }
+
+    @Benchmark
+    public List<Map<String, Object>> mapInterpretedFilter(BenchmarkState state) {
+        return state.mapRecords.stream().filter(state.interpretedMapFilter).toList();
+    }
+
+    @Benchmark
+    public List<Map<String, Object>> mapJitFilter(BenchmarkState state) {
+        return state.mapRecords.stream().filter(state.jitMapFilter).toList();
     }
 
     private static List<User> generateUsers(int count) {

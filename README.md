@@ -109,6 +109,21 @@ var filteredUsers = users
       .toList();
 ```
 
+### Filtering Maps (including nested maps)
+
+You can filter `Map<String, Object>` collections the same way you filter objects. Keys are accessed as identifiers, and nested maps work with dot access:
+
+```java
+var records = List.of(
+        Map.of("name", "John", "age", 25, "address", Map.of("city", "Paris")),
+        Map.of("name", "Jane", "age", 30, "address", Map.of("city", "Belgrade"))
+);
+
+var adultsInBelgrade = records.stream()
+        .filter(Fel.filter("age >= 30 && address.city = 'Belgrade'"))
+        .toList();
+```
+
 
 ### Explanation
 
@@ -213,6 +228,7 @@ The JIT compiler supports all FEL features:
 - ✅ **Literals**: strings, numbers (long/double), booleans, null, dates
 - ✅ **Identifiers**: field access
 - ✅ **Dot expressions**: nested field access (`address.city`)
+- ✅ **Map key access**: flat keys and nested maps (`address.city`)
 - ✅ **Comparison operators**: `=`, `!=`, `>`, `<`, `>=`, `<=`
 - ✅ **Logical operators**: `&&`, `||`, `!`
 - ✅ **Short-circuit evaluation**: Optimized boolean logic
@@ -354,6 +370,7 @@ Native Java matches: 73
 Interpreted matches: 73
 JIT Compiled matches: 73
 ✓ All implementations produce identical results
+Map filtering produces identical results (keys as identifiers, nested keys via dot)
 
 === Performance Benchmark ===
 Running 50000 iterations per implementation...
@@ -369,6 +386,7 @@ Running 50000 iterations per implementation...
 === Summary ===
 JIT vs Interpreted: 27.13x faster
 JIT vs Native: 1.15x
+Map mode (object input) benchmark is also printed when running `JitExample` to demonstrate filtering `Map<String, Object>` collections.
 ```
 
 ---
