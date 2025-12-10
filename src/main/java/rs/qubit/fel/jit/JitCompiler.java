@@ -50,9 +50,9 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
     /**
      * Compiles an expression tree into a Predicate implementation.
      *
-     * @param ast the expression AST to compile
+     * @param ast            the expression AST to compile
      * @param visitorContext the visitor context with functions and mappers
-     * @param inputType the class type of objects that will be filtered (null for Object)
+     * @param inputType      the class type of objects that will be filtered (null for Object)
      * @return a compiled predicate
      */
     public Predicate<Object> compile(ExpressionNode ast, VisitorContext visitorContext, Class<?> inputType) {
@@ -86,7 +86,7 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
         Class<?> predicateClass = loader.defineClass(className.replace('/', '.'), bytecode);
 
         // write bytecode to file for inspection (optional)
-         writeClassToFile(className.replace('/', '.'), bytecode);
+//        writeClassToFile(className.replace('/', '.'), bytecode);
 
 
         try {

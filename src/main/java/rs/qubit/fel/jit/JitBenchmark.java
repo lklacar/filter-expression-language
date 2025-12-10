@@ -10,19 +10,6 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-/**
- * JMH benchmark for FEL JIT vs interpreted vs native Java.
- *
- * This replaces the manual nanoTime-based benchmarking with a proper JMH harness.
- *
- * Benchmarks:
- *  - simpleNativeFilter
- *  - simpleInterpretedFilter
- *  - simpleJitFilter
- *  - complexNativeFilter
- *  - complexInterpretedFilter
- *  - complexJitFilter
- */
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
@@ -66,9 +53,6 @@ public class JitBenchmark {
 
     private static final int DATASET_SIZE = 1000;
 
-    /**
-     * Shared state for all benchmark methods.
-     */
     @State(Scope.Benchmark)
     public static class BenchmarkState {
         List<User> users;
@@ -87,20 +71,16 @@ public class JitBenchmark {
         public void setup() {
             System.out.println("╔════════════════════════════════════════════════════════════════╗");
             System.out.println("║          FEL JIT Compiler Performance Benchmark (JMH)          ║");
-            System.out.println("╚════════════════════════════════════════════════════════════════╝");
-            System.out.println();
+            System.out.println("╚════════════════════════════════════════════════════════════════╝\n");
 
             users = generateUsers(DATASET_SIZE);
-            System.out.println("Dataset size: " + users.size() + " entities");
-            System.out.println();
+            System.out.println("Dataset size: " + users.size() + " entities\n");
 
-            // Simple expression setup
             simpleExpression = "age >= 30 && city = 'New York'";
             nativeSimpleFilter = u -> u.getAge() >= 30 && "New York".equals(u.getCity());
             interpretedSimpleFilter = Fel.filter(simpleExpression);
             jitSimpleFilter = Fel.filterJit(simpleExpression, User.class);
 
-            // Correctness verification for simple expression
             System.out.println("=== Correctness Verification (Simple) ===");
             var nativeSimpleResult = users.stream().filter(nativeSimpleFilter).toList();
             var interpretedSimpleResult = users.stream().filter(interpretedSimpleFilter).toList();
@@ -116,17 +96,15 @@ public class JitBenchmark {
                 throw new IllegalStateException("Simple expression results differ between implementations");
             }
 
-            // Complex expression setup
             complexExpression = "toUpperCase(name) = 'ALICE' || (age > 25 && city != 'Boston')";
             nativeComplexFilter = u -> u.getName().toUpperCase().equals("ALICE")
-                    || (u.getAge() > 25 && !u.getCity().equals("Boston"));
+                    || (u.getAge() > 25 && !"Boston".equals(u.getCity()));
             interpretedComplexFilter = Fel.filter(complexExpression);
             jitComplexFilter = Fel.filterJit(complexExpression, User.class);
 
-            // Correctness verification for complex expression
-            System.out.println();
-            System.out.println("=== Correctness Verification (Complex) ===");
+            System.out.println("\n=== Correctness Verification (Complex) ===");
             System.out.println("Expression: " + complexExpression);
+
             var nativeComplexResult = users.stream().filter(nativeComplexFilter).toList();
             var interpretedComplexResult = users.stream().filter(interpretedComplexFilter).toList();
             var jitComplexResult = users.stream().filter(jitComplexFilter).toList();
@@ -140,15 +118,9 @@ public class JitBenchmark {
                 throw new IllegalStateException("Complex expression results differ between implementations");
             }
 
-            System.out.println();
-            System.out.println("Setup complete. JMH will now run the benchmarks.");
-            System.out.println();
+            System.out.println("\nSetup complete. JMH will now run the benchmarks.\n");
         }
     }
-
-    // ─────────────────────────────────────────────────────────────
-    // Simple expression benchmarks
-    // ─────────────────────────────────────────────────────────────
 
     @Benchmark
     public List<User> simpleNativeFilter(BenchmarkState state) {
@@ -165,10 +137,6 @@ public class JitBenchmark {
         return state.users.stream().filter(state.jitSimpleFilter).toList();
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // Complex expression benchmarks
-    // ─────────────────────────────────────────────────────────────
-
     @Benchmark
     public List<User> complexNativeFilter(BenchmarkState state) {
         return state.users.stream().filter(state.nativeComplexFilter).toList();
@@ -184,27 +152,18 @@ public class JitBenchmark {
         return state.users.stream().filter(state.jitComplexFilter).toList();
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // Utility
-    // ─────────────────────────────────────────────────────────────
-
     private static List<User> generateUsers(int count) {
-        var random = new Random(42); // Fixed seed for reproducibility
+        var random = new Random(42);
         var users = new ArrayList<User>(count);
         for (var i = 0; i < count; i++) {
             var name = NAMES[random.nextInt(NAMES.length)];
-            var age = 20 + random.nextInt(40); // Age between 20 and 59
+            var age = 20 + random.nextInt(40);
             var city = CITIES[random.nextInt(CITIES.length)];
             users.add(new User(name, age, city));
         }
         return users;
     }
 
-    /**
-     * Convenience main so you can run:
-     *   java -jar target/benchmarks.jar
-     * or directly run this class if you configure JMH that way.
-     */
     public static void main(String[] args) throws Exception {
         org.openjdk.jmh.Main.main(args);
     }
