@@ -1,0 +1,211 @@
+package rs.qubit.fel.jit;
+
+import org.openjdk.jmh.annotations.*;
+import rs.qubit.fel.Fel;
+import rs.qubit.fel.FelPredicate;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+
+/**
+ * JMH benchmark for FEL JIT vs interpreted vs native Java.
+ *
+ * This replaces the manual nanoTime-based benchmarking with a proper JMH harness.
+ *
+ * Benchmarks:
+ *  - simpleNativeFilter
+ *  - simpleInterpretedFilter
+ *  - simpleJitFilter
+ *  - complexNativeFilter
+ *  - complexInterpretedFilter
+ *  - complexJitFilter
+ */
+@BenchmarkMode(Mode.Throughput)
+@OutputTimeUnit(TimeUnit.SECONDS)
+@Warmup(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 10, time = 1, timeUnit = TimeUnit.SECONDS)
+@Fork(1)
+public class JitBenchmark {
+
+    public static class User {
+        private final String name;
+        private final int age;
+        private final String city;
+
+        public User(String name, int age, String city) {
+            this.name = name;
+            this.age = age;
+            this.city = city;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getAge() {
+            return age;
+        }
+
+        public String getCity() {
+            return city;
+        }
+    }
+
+    private static final String[] NAMES = {
+            "Alice", "Bob", "Charlie", "David", "Eve",
+            "Frank", "Grace", "Henry", "Ivy", "Jack"
+    };
+
+    private static final String[] CITIES = {
+            "New York", "San Francisco", "Boston", "Chicago",
+            "Seattle", "Austin", "Denver", "Portland"
+    };
+
+    private static final int DATASET_SIZE = 1000;
+
+    /**
+     * Shared state for all benchmark methods.
+     */
+    @State(Scope.Benchmark)
+    public static class BenchmarkState {
+        List<User> users;
+
+        String simpleExpression;
+        Predicate<User> nativeSimpleFilter;
+        FelPredicate interpretedSimpleFilter;
+        FelPredicate jitSimpleFilter;
+
+        String complexExpression;
+        Predicate<User> nativeComplexFilter;
+        FelPredicate interpretedComplexFilter;
+        FelPredicate jitComplexFilter;
+
+        @Setup(Level.Trial)
+        public void setup() {
+            System.out.println("╔════════════════════════════════════════════════════════════════╗");
+            System.out.println("║          FEL JIT Compiler Performance Benchmark (JMH)          ║");
+            System.out.println("╚════════════════════════════════════════════════════════════════╝");
+            System.out.println();
+
+            users = generateUsers(DATASET_SIZE);
+            System.out.println("Dataset size: " + users.size() + " entities");
+            System.out.println();
+
+            // Simple expression setup
+            simpleExpression = "age >= 30 && city = 'New York'";
+            nativeSimpleFilter = u -> u.getAge() >= 30 && "New York".equals(u.getCity());
+            interpretedSimpleFilter = Fel.filter(simpleExpression);
+            jitSimpleFilter = Fel.filterJit(simpleExpression, User.class);
+
+            // Correctness verification for simple expression
+            System.out.println("=== Correctness Verification (Simple) ===");
+            var nativeSimpleResult = users.stream().filter(nativeSimpleFilter).toList();
+            var interpretedSimpleResult = users.stream().filter(interpretedSimpleFilter).toList();
+            var jitSimpleResult = users.stream().filter(jitSimpleFilter).toList();
+
+            System.out.println("Expression: " + simpleExpression);
+            System.out.println("Native Java matches: " + nativeSimpleResult.size());
+            System.out.println("Interpreted matches: " + interpretedSimpleResult.size());
+            System.out.println("JIT Compiled matches: " + jitSimpleResult.size());
+
+            if (nativeSimpleResult.size() != interpretedSimpleResult.size()
+                    || nativeSimpleResult.size() != jitSimpleResult.size()) {
+                throw new IllegalStateException("Simple expression results differ between implementations");
+            }
+
+            // Complex expression setup
+            complexExpression = "toUpperCase(name) = 'ALICE' || (age > 25 && city != 'Boston')";
+            nativeComplexFilter = u -> u.getName().toUpperCase().equals("ALICE")
+                    || (u.getAge() > 25 && !u.getCity().equals("Boston"));
+            interpretedComplexFilter = Fel.filter(complexExpression);
+            jitComplexFilter = Fel.filterJit(complexExpression, User.class);
+
+            // Correctness verification for complex expression
+            System.out.println();
+            System.out.println("=== Correctness Verification (Complex) ===");
+            System.out.println("Expression: " + complexExpression);
+            var nativeComplexResult = users.stream().filter(nativeComplexFilter).toList();
+            var interpretedComplexResult = users.stream().filter(interpretedComplexFilter).toList();
+            var jitComplexResult = users.stream().filter(jitComplexFilter).toList();
+
+            System.out.println("Native Java matches: " + nativeComplexResult.size());
+            System.out.println("Interpreted matches: " + interpretedComplexResult.size());
+            System.out.println("JIT Compiled matches: " + jitComplexResult.size());
+
+            if (nativeComplexResult.size() != interpretedComplexResult.size()
+                    || nativeComplexResult.size() != jitComplexResult.size()) {
+                throw new IllegalStateException("Complex expression results differ between implementations");
+            }
+
+            System.out.println();
+            System.out.println("Setup complete. JMH will now run the benchmarks.");
+            System.out.println();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Simple expression benchmarks
+    // ─────────────────────────────────────────────────────────────
+
+    @Benchmark
+    public List<User> simpleNativeFilter(BenchmarkState state) {
+        return state.users.stream().filter(state.nativeSimpleFilter).toList();
+    }
+
+    @Benchmark
+    public List<User> simpleInterpretedFilter(BenchmarkState state) {
+        return state.users.stream().filter(state.interpretedSimpleFilter).toList();
+    }
+
+    @Benchmark
+    public List<User> simpleJitFilter(BenchmarkState state) {
+        return state.users.stream().filter(state.jitSimpleFilter).toList();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Complex expression benchmarks
+    // ─────────────────────────────────────────────────────────────
+
+    @Benchmark
+    public List<User> complexNativeFilter(BenchmarkState state) {
+        return state.users.stream().filter(state.nativeComplexFilter).toList();
+    }
+
+    @Benchmark
+    public List<User> complexInterpretedFilter(BenchmarkState state) {
+        return state.users.stream().filter(state.interpretedComplexFilter).toList();
+    }
+
+    @Benchmark
+    public List<User> complexJitFilter(BenchmarkState state) {
+        return state.users.stream().filter(state.jitComplexFilter).toList();
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Utility
+    // ─────────────────────────────────────────────────────────────
+
+    private static List<User> generateUsers(int count) {
+        var random = new Random(42); // Fixed seed for reproducibility
+        var users = new ArrayList<User>(count);
+        for (var i = 0; i < count; i++) {
+            var name = NAMES[random.nextInt(NAMES.length)];
+            var age = 20 + random.nextInt(40); // Age between 20 and 59
+            var city = CITIES[random.nextInt(CITIES.length)];
+            users.add(new User(name, age, city));
+        }
+        return users;
+    }
+
+    /**
+     * Convenience main so you can run:
+     *   java -jar target/benchmarks.jar
+     * or directly run this class if you configure JMH that way.
+     */
+    public static void main(String[] args) throws Exception {
+        org.openjdk.jmh.Main.main(args);
+    }
+}
