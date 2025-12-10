@@ -81,6 +81,24 @@ class JitCompilerHelperTest {
     }
 
     @Test
+    void parseValueCoversPrimitivesAndTemporal() {
+        assertEquals(1L, JitCompilerHelper.parseValue((byte) 1, emptyCtx).asLong());
+        assertEquals(2L, JitCompilerHelper.parseValue((short) 2, emptyCtx).asLong());
+        assertEquals(3L, JitCompilerHelper.parseValue(3, emptyCtx).asLong());
+        assertEquals(4L, JitCompilerHelper.parseValue(4L, emptyCtx).asLong());
+        assertEquals(5.5, JitCompilerHelper.parseValue(5.5f, emptyCtx).asDouble());
+        assertEquals("c", JitCompilerHelper.parseValue('c', emptyCtx).asString());
+        assertEquals("ENUM", JitCompilerHelper.parseValue(TestEnum.ENUM, emptyCtx).asString());
+        var ld = java.time.LocalDate.of(2024, 1, 1);
+        assertEquals(ld.atStartOfDay(), JitCompilerHelper.parseValue(ld, emptyCtx).asDateTime());
+        var instant = java.time.Instant.parse("2024-01-01T00:00:00Z");
+        assertEquals(instant.atZone(java.time.ZoneId.systemDefault()).toLocalDateTime(),
+                JitCompilerHelper.parseValue(instant, emptyCtx).asDateTime());
+    }
+
+    enum TestEnum { ENUM }
+
+    @Test
     void javaLangObjectsWithoutMapperThrow() {
         assertThrows(FilterException.class, () -> JitCompilerHelper.parseValue(new java.awt.Point(1, 2), emptyCtx));
     }

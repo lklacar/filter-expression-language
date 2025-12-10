@@ -18,6 +18,8 @@ class ValueOperationsTest {
         assertTrue(doubleVal.equal(longVal));
         assertTrue(doubleVal.greaterThan(new LongValue(4L)));
         assertTrue(longVal.lessThan(new DoubleValue(6.0)));
+        assertTrue(longVal.greaterThanOrEquals(new DoubleValue(5.0)));
+        assertTrue(doubleVal.lessThanOrEquals(new LongValue(5L)));
         assertThrows(FilterException.class, longVal::asBoolean);
     }
 

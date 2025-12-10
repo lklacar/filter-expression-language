@@ -33,6 +33,8 @@ class ValueMethodsExhaustiveTest {
         assertEquals(true, five.greaterThanOrEquals(new DoubleValue(5.0)));
         assertThrows(FilterException.class, () -> five.lessThan(new BooleanValue(true)));
         assertThrows(FilterException.class, () -> five.lessThanOrEquals(new BooleanValue(true)));
+        assertThrows(FilterException.class, () -> five.equal(new StringValue("x")));
+        assertThrows(FilterException.class, () -> five.greaterThanOrEquals(new StringValue("x")));
         assertThrows(FilterException.class, five::asBoolean);
         assertThrows(FilterException.class, five::asObject);
         assertThrows(FilterException.class, five::asLong);
