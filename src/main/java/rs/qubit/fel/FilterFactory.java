@@ -10,7 +10,7 @@ public class FilterFactory {
         this.evaluationContext = evaluationContext;
     }
 
-    public FelPredicate crateFilter(String filter) {
+    public FelPredicate createFilter(String filter) {
         return Fel.filter(filter, evaluationContext);
     }
 

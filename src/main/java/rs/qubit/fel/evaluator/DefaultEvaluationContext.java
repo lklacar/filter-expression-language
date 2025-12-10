@@ -57,7 +57,20 @@ public class DefaultEvaluationContext implements VisitorContext {
 
     @Override
     public Function<Object, Value> getMapper(Class<?> aClass) {
-        return mappers.get(aClass);
+        FelMapperFunction bestMatch = null;
+        Class<?> bestType = null;
+
+        for (var entry : mappers.entrySet()) {
+            var mapperType = entry.getKey();
+            if (mapperType.isAssignableFrom(aClass)) {
+                if (bestType == null || bestType.isAssignableFrom(mapperType)) {
+                    bestType = mapperType;
+                    bestMatch = entry.getValue();
+                }
+            }
+        }
+
+        return bestMatch;
     }
 
     @Override

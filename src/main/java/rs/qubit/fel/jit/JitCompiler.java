@@ -406,10 +406,11 @@ public class JitCompiler implements ExpressionVisitor<Void, JitCompilerContext, 
         // Create LocalDateTime from the node's date value
         // We'll store it as a constant in the helper and retrieve it
         int dateTimeIndex = ctx.addConstant(node.date());
+        mv.push(ctx.getClassName());
         mv.push(dateTimeIndex);
 
         mv.invokeStatic(Type.getType(JitCompilerHelper.class),
-                Method.getMethod("java.time.LocalDateTime getDateTime(int)"));
+                Method.getMethod("java.time.LocalDateTime getDateTime(String,int)"));
 
         mv.invokeConstructor(Type.getType(DateTimeValue.class),
                 Method.getMethod("void <init>(java.time.LocalDateTime)"));

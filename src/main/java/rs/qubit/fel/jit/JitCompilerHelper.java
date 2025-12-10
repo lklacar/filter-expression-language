@@ -18,20 +18,25 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class JitCompilerHelper {
 
-    private static final Map<Integer, Object> CONSTANTS = new ConcurrentHashMap<>();
+    private static final Map<String, Map<Integer, Object>> CONSTANTS = new ConcurrentHashMap<>();
 
     /**
      * Register a constant value at a specific index.
      */
-    public static void registerConstant(int index, Object value) {
-        CONSTANTS.put(index, value);
+    public static void registerConstant(String className, int index, Object value) {
+        CONSTANTS.computeIfAbsent(className, ignored -> new ConcurrentHashMap<>())
+                .put(index, value);
     }
 
     /**
      * Retrieve a DateTime constant by index.
      */
-    public static LocalDateTime getDateTime(int index) {
-        return (LocalDateTime) CONSTANTS.get(index);
+    public static LocalDateTime getDateTime(String className, int index) {
+        var constants = CONSTANTS.get(className);
+        if (constants == null) {
+            throw new FilterException("No constants registered for %s".formatted(className));
+        }
+        return (LocalDateTime) constants.get(index);
     }
 
     /**
@@ -76,5 +81,12 @@ public class JitCompilerHelper {
      */
     public static void clearConstants() {
         CONSTANTS.clear();
+    }
+
+    /**
+     * Clear constants for a specific generated class.
+     */
+    public static void clearConstants(String className) {
+        CONSTANTS.remove(className);
     }
 }

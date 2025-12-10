@@ -23,17 +23,29 @@ public class FilterEvaluator implements ExpressionVisitor<Value, VisitorContext,
     @Override
     public Value visit(OrExpressionNode orExpressionNode, VisitorContext env, Object record) {
         var left = orExpressionNode.left().accept(this, env, record);
+        var leftBoolean = left.asBoolean();
+        if (leftBoolean) {
+            // Short-circuit: true || _ => true without evaluating the right side
+            return new BooleanValue(true);
+        }
+
         var right = orExpressionNode.right().accept(this, env, record);
 
-        return new BooleanValue(left.asBoolean() || right.asBoolean());
+        return new BooleanValue(right.asBoolean());
     }
 
     @Override
     public Value visit(AndExpressionNode andExpressionNode, VisitorContext env, Object record) {
         var left = andExpressionNode.left().accept(this, env, record);
+        var leftBoolean = left.asBoolean();
+        if (!leftBoolean) {
+            // Short-circuit: false && _ => false without evaluating the right side
+            return new BooleanValue(false);
+        }
+
         var right = andExpressionNode.right().accept(this, env, record);
 
-        return new BooleanValue(left.asBoolean() && right.asBoolean());
+        return new BooleanValue(right.asBoolean());
     }
 
     @Override

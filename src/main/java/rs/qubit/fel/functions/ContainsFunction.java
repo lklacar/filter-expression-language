@@ -11,7 +11,7 @@ public class ContainsFunction implements FelFunction {
     @Override
     public Value apply(List<Value> values) {
         if (values.size() != 2) {
-            throw new FilterException("length function accepts only one argument");
+            throw new FilterException("contains function expects exactly two arguments");
         }
         var first = values.get(0).asString();
         var second = values.get(1).asString();

@@ -11,7 +11,7 @@ public class MaxFunction implements FelFunction {
     @Override
     public Value apply(List<Value> values) {
         if (values.size() != 2) {
-            throw new FilterException("length function accepts only two arguments");
+            throw new FilterException("max function expects exactly two arguments");
         }
 
         var value1 = values.get(0).asDouble();

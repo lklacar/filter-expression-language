@@ -11,7 +11,7 @@ public class AddDaysFunction implements FelFunction {
     @Override
     public Value apply(List<Value> values) {
         if (values.size() != 2) {
-            throw new FilterException("length function accepts only one argument");
+            throw new FilterException("addDays function expects exactly two arguments");
         }
 
         var value = values.get(0).asDateTime();

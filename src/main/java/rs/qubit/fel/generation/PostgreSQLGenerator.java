@@ -1,9 +1,25 @@
 package rs.qubit.fel.generation;
 
+import rs.qubit.fel.exception.FilterException;
 import rs.qubit.fel.parser.ast.*;
 import rs.qubit.fel.visitor.ExpressionVisitor;
 
 public class PostgreSQLGenerator implements ExpressionVisitor<String, PostgreSQLGenerationContext, Void> {
+
+    private static final String IDENTIFIER_REGEX = "[A-Za-z_][A-Za-z0-9_]*";
+
+    private String sanitizeIdentifier(String identifier) {
+        if (!identifier.matches(IDENTIFIER_REGEX)) {
+            throw new FilterException("Unsafe identifier: %s".formatted(identifier));
+        }
+        return identifier;
+    }
+
+    private String parameter(PostgreSQLGenerationContext env, Object value) {
+        var index = env.addParameter(value);
+        return "$" + index;
+    }
+
     @Override
     public String visit(OrExpressionNode orExpressionNode, PostgreSQLGenerationContext env, Void record) {
         var left = orExpressionNode.left().accept(this, env, record);
@@ -37,8 +53,7 @@ public class PostgreSQLGenerator implements ExpressionVisitor<String, PostgreSQL
 
     @Override
     public String visit(StringExpressionNode stringExpressionNode, PostgreSQLGenerationContext env, Void record) {
-        var value = stringExpressionNode.value();
-        return String.format("'%s'", value);
+        return parameter(env, stringExpressionNode.value());
     }
 
     @Override
@@ -54,7 +69,7 @@ public class PostgreSQLGenerator implements ExpressionVisitor<String, PostgreSQL
 
     @Override
     public String visit(IdentifierExpressionNode identifierExpressionNode, PostgreSQLGenerationContext env, Void record) {
-        return identifierExpressionNode.value();
+        return sanitizeIdentifier(identifierExpressionNode.value());
     }
 
     @Override
@@ -71,8 +86,7 @@ public class PostgreSQLGenerator implements ExpressionVisitor<String, PostgreSQL
 
     @Override
     public String visit(DateTimeExpressionNode dateTimeExpressionNode, PostgreSQLGenerationContext env, Void record) {
-        var value = dateTimeExpressionNode.date();
-        return String.format("'%s'", value);
+        return parameter(env, dateTimeExpressionNode.date());
     }
 
     @Override
@@ -118,14 +132,14 @@ public class PostgreSQLGenerator implements ExpressionVisitor<String, PostgreSQL
     @Override
     public String visit(DotExpressionNode dotExpressionNode, PostgreSQLGenerationContext env, Void record) {
         var left = dotExpressionNode.object().accept(this, env, record);
-        var right = dotExpressionNode.field();
+        var right = sanitizeIdentifier(dotExpressionNode.field());
 
         return String.format("%s.%s", left, right);
     }
 
     @Override
     public String visit(FunctionCallExpressionNode functionCallExpressionNode, PostgreSQLGenerationContext env, Void record) {
-        var function = functionCallExpressionNode.function();
+        var function = sanitizeIdentifier(functionCallExpressionNode.function());
         var arguments = functionCallExpressionNode.arguments();
 
         var args = arguments.stream()

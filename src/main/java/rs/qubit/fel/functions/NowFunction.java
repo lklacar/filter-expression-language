@@ -10,8 +10,8 @@ import java.util.List;
 public class NowFunction implements FelFunction {
     @Override
     public Value apply(List<Value> values) {
-        if (values.size() != 1) {
-            throw new FilterException("length function accepts only one argument");
+        if (!values.isEmpty()) {
+            throw new FilterException("now function expects no arguments");
         }
 
         var localDateTime = java.time.LocalDateTime.now();

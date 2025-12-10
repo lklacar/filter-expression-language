@@ -31,7 +31,7 @@ public class JitCompilerContext {
     public int addConstant(Object constant) {
         constants.add(constant);
         int index = constants.size() - 1;
-        JitCompilerHelper.registerConstant(index, constant);
+        JitCompilerHelper.registerConstant(className, index, constant);
         return index;
     }
 }

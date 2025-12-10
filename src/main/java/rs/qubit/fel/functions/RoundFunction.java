@@ -11,7 +11,7 @@ public class RoundFunction implements FelFunction {
     @Override
     public Value apply(List<Value> values) {
         if (values.size() != 1) {
-            throw new FilterException("length function accepts only one argument");
+            throw new FilterException("round function expects exactly one argument");
         }
 
         var value = values.get(0).asDouble();

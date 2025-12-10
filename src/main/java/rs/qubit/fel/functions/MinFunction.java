@@ -11,7 +11,7 @@ public class MinFunction implements FelFunction {
     @Override
     public Value apply(List<Value> values) {
         if (values.size() != 2) {
-            throw new FilterException("length function accepts only two arguments");
+            throw new FilterException("min function expects exactly two arguments");
         }
 
         var value1 = values.get(0).asDouble();
