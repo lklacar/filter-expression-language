@@ -1,11 +1,11 @@
 package rs.qubit.fel.parser;
 
+import org.antlr.v4.runtime.ParserRuleContext;
 import rs.qubit.fel.parser.ast.*;
 import rs.qubit.fel.parser.generated.FilterBaseVisitor;
 import rs.qubit.fel.parser.generated.FilterParser;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
 
@@ -14,7 +14,7 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var left = visit(ctx.left);
         var right = visit(ctx.right);
 
-        return new OrExpressionNode(left, right);
+        return new OrExpressionNode(position(ctx), left, right);
     }
 
     @Override
@@ -27,7 +27,7 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var left = visit(ctx.left);
         var right = visit(ctx.right);
 
-        return new AndExpressionNode(left, right);
+        return new AndExpressionNode(position(ctx), left, right);
     }
 
     @Override
@@ -35,52 +35,52 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var left = visit(ctx.left);
         var right = visit(ctx.right);
 
-        return new EqualsExpressionNode(left, right);
+        return new EqualsExpressionNode(position(ctx), left, right);
     }
 
     @Override
     public ExpressionNode visitNotExpression(FilterParser.NotExpressionContext ctx) {
         var expression = visit(ctx.expression());
-        return new NotExpressionNode(expression);
+        return new NotExpressionNode(position(ctx), expression);
     }
 
     @Override
     public ExpressionNode visitStringExpression(FilterParser.StringExpressionContext ctx) {
         var text = ctx.getText();
         var value = text.substring(1, text.length() - 1);
-        return new StringExpressionNode(value);
+        return new StringExpressionNode(position(ctx), value);
     }
 
     @Override
     public ExpressionNode visitBooleanExpression(FilterParser.BooleanExpressionContext ctx) {
         var text = ctx.getText();
         var value = Boolean.parseBoolean(text);
-        return new BooleanExpressionNode(value);
+        return new BooleanExpressionNode(position(ctx), value);
     }
 
     @Override
     public ExpressionNode visitNullExpression(FilterParser.NullExpressionContext ctx) {
-        return new NullExpressionNode();
+        return new NullExpressionNode(position(ctx));
     }
 
     @Override
     public ExpressionNode visitIdentifierExpression(FilterParser.IdentifierExpressionContext ctx) {
         var text = ctx.getText();
-        return new IdentifierExpressionNode(text);
+        return new IdentifierExpressionNode(position(ctx), text);
     }
 
     @Override
     public ExpressionNode visitLongExpression(FilterParser.LongExpressionContext ctx) {
         var text = ctx.getText();
         var value = Long.parseLong(text);
-        return new LongExpressionNode(value);
+        return new LongExpressionNode(position(ctx), value);
     }
 
     @Override
     public ExpressionNode visitDoubleExpression(FilterParser.DoubleExpressionContext ctx) {
         var text = ctx.getText();
         var value = Double.parseDouble(text);
-        return new DoubleExpressionNode(value);
+        return new DoubleExpressionNode(position(ctx), value);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         }
 
         var date = LocalDateTime.of(year, month, day, hour, minute, second, nano);
-        return new DateTimeExpressionNode(date);
+        return new DateTimeExpressionNode(position(ctx), date);
     }
 
 
@@ -130,7 +130,7 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var left = visit(ctx.left);
         var right = visit(ctx.right);
 
-        return new GreaterThanExpressionNode(left, right);
+        return new GreaterThanExpressionNode(position(ctx), left, right);
     }
 
     @Override
@@ -138,7 +138,7 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var left = visit(ctx.left);
         var right = visit(ctx.right);
 
-        return new LessThanOrEqualsExpressionNode(left, right);
+        return new LessThanOrEqualsExpressionNode(position(ctx), left, right);
     }
 
     @Override
@@ -146,7 +146,7 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var left = visit(ctx.left);
         var right = visit(ctx.right);
 
-        return new GreaterThanOrEqualsExpressionNode(left, right);
+        return new GreaterThanOrEqualsExpressionNode(position(ctx), left, right);
     }
 
     @Override
@@ -154,7 +154,7 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var left = visit(ctx.left);
         var right = visit(ctx.right);
 
-        return new NotEqualsExpressionNode(left, right);
+        return new NotEqualsExpressionNode(position(ctx), left, right);
     }
 
     @Override
@@ -162,14 +162,14 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var left = visit(ctx.left);
         var right = visit(ctx.right);
 
-        return new LessThanExpressionNode(left, right);
+        return new LessThanExpressionNode(position(ctx), left, right);
     }
 
     @Override
     public ExpressionNode visitDotExpression(FilterParser.DotExpressionContext ctx) {
         var object = visit(ctx.object);
         var field = ctx.field.getText();
-        return new DotExpressionNode(object, field);
+        return new DotExpressionNode(position(ctx), object, field);
     }
 
     @Override
@@ -177,6 +177,11 @@ public class ExpressionParserVisitor extends FilterBaseVisitor<ExpressionNode> {
         var function = ctx.function.getText();
         var arguments = ctx.expression().stream().map(this::visit).toList();
 
-        return new FunctionCallExpressionNode(function, arguments);
+        return new FunctionCallExpressionNode(position(ctx), function, arguments);
+    }
+
+    private SourcePosition position(ParserRuleContext ctx) {
+        var start = ctx.getStart();
+        return new SourcePosition(start.getLine(), start.getCharPositionInLine() + 1);
     }
 }

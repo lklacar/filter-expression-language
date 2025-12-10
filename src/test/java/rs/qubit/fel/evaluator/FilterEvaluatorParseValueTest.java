@@ -10,6 +10,7 @@ import rs.qubit.fel.evaluator.value.ObjectValue;
 import rs.qubit.fel.evaluator.value.StringValue;
 import rs.qubit.fel.evaluator.value.Value;
 import rs.qubit.fel.parser.ast.IdentifierExpressionNode;
+import rs.qubit.fel.parser.ast.SourcePosition;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -122,7 +123,7 @@ class FilterEvaluatorParseValueTest {
     }
 
     private Value read(String field, DefaultEvaluationContext context, Object record) {
-        return evaluator.visit(new IdentifierExpressionNode(field), context, record);
+        return evaluator.visit(new IdentifierExpressionNode(SourcePosition.UNKNOWN, field), context, record);
     }
 
     @Test

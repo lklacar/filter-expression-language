@@ -14,4 +14,8 @@ public class FilterFactory {
         return Fel.filter(filter, evaluationContext);
     }
 
+    public <T> FelPredicate createFilter(String filter, Class<T> inputType) {
+        return Fel.filter(filter, evaluationContext, inputType);
+    }
+
 }

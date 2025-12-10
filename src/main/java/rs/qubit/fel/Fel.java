@@ -7,6 +7,8 @@ import rs.qubit.fel.visitor.VisitorContext;
 import rs.qubit.fel.evaluator.FilterEvaluator;
 import rs.qubit.fel.parser.FilterParser;
 import rs.qubit.fel.parser.ast.ExpressionNode;
+import rs.qubit.fel.typecheck.TypeCheckContext;
+import rs.qubit.fel.typecheck.TypeCheckerVisitor;
 
 import java.util.function.Predicate;
 
@@ -39,6 +41,22 @@ public class Fel {
                 return filterAst.accept(evaluator, evaluationContext, o).asBoolean();
             }
         };
+    }
+
+    public static <T> FelPredicate filter(String filter, Class<T> inputType) {
+        return filter(filter, new DefaultEvaluationContext(), inputType);
+    }
+
+    public static <T> FelPredicate filter(String filter, VisitorContext evaluationContext, Class<T> inputType) {
+        var parser = new FilterParser();
+        var filterAst = parser.parse(filter);
+        typeCheck(filterAst, evaluationContext, inputType);
+        return fromAst(filterAst, evaluationContext);
+    }
+
+    public static <T> FelPredicate fromAst(ExpressionNode filterAst, VisitorContext evaluationContext, Class<T> inputType) {
+        typeCheck(filterAst, evaluationContext, inputType);
+        return fromAst(filterAst, evaluationContext);
     }
 
     /**
@@ -90,6 +108,7 @@ public class Fel {
     public static <T> FelPredicate filterJit(String filter, VisitorContext evaluationContext, Class<T> inputType) {
         var parser = new FilterParser();
         var filterAst = parser.parse(filter);
+        typeCheck(filterAst, evaluationContext, inputType);
         return fromAstJit(filterAst, evaluationContext, inputType);
     }
 
@@ -137,6 +156,7 @@ public class Fel {
      * @return a JIT-compiled FelPredicate
      */
     public static <T> FelPredicate fromAstJit(ExpressionNode filterAst, VisitorContext evaluationContext, Class<T> inputType) {
+        typeCheck(filterAst, evaluationContext, inputType);
         var jitCompiler = new JitCompiler();
         var compiledPredicate = jitCompiler.compile(filterAst, evaluationContext, inputType);
 
@@ -146,5 +166,13 @@ public class Fel {
                 return compiledPredicate.test(o);
             }
         };
+    }
+
+    private static <T> void typeCheck(ExpressionNode filterAst, VisitorContext evaluationContext, Class<T> inputType) {
+        if (inputType == null) {
+            return;
+        }
+        var typeChecker = new TypeCheckerVisitor();
+        typeChecker.check(filterAst, new TypeCheckContext(inputType, evaluationContext));
     }
 }

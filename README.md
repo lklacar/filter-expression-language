@@ -5,6 +5,7 @@ Filter Expression Language (FEL) is a lightweight, open-source Java library that
 ## Features
 
 - **JIT Compiler**: Generates optimized JVM bytecode for 10-27x performance improvement
+- Optional static type-checking when a target class is provided (unknown fields, type mismatches, nullability hints with line/column diagnostics)
 - Simple and intuitive string-based filter expressions
 - Integration with Java streams
 - Built-in and custom functions support
@@ -593,6 +594,33 @@ var filter = Fel.filter("addDays(eventDate, 7) > now()");
 ```
 
 These functions enhance the power and flexibility of FEL, allowing for more complex and expressive filter conditions. Use them to tailor your filtering logic to meet specific application requirements.
+
+## Static Type Checking (optional)
+
+If you provide the target class, FEL validates expressions before running them and reports unknown fields, type mismatches, and nullability problems with line/column info.
+
+```java
+import rs.qubit.fel.Fel;
+import rs.qubit.fel.exception.TypeCheckException;
+
+record Address(String city) {}
+record User(String name, Integer age, Address address) {}
+
+public class Example {
+    public static void main(String[] args) {
+        // Passes type checking
+        var ok = Fel.filterJit("address.city = 'Paris' && age > 18", User.class);
+
+        try {
+            Fel.filterJit("age = 'old' && unknown = 1", User.class);
+        } catch (TypeCheckException e) {
+            System.err.println(e.getMessage());
+            // Type mismatch for '=': left is number, right is string at line 1, column 6
+            // Field 'unknown' not found on type User at line 1, column 18
+        }
+    }
+}
+```
 
 ## Internal Types (`Value`)
 
