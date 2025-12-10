@@ -12,8 +12,10 @@ import java.util.function.Predicate;
 /**
  * Benchmark demonstrating the JIT compiler performance.
  * <p>
- * The JIT compiler generates optimized JVM bytecode at runtime for filter expressions,
- * providing significantly better performance than the interpreted evaluation for
+ * The JIT compiler generates optimized JVM bytecode at runtime for filter
+ * expressions,
+ * providing significantly better performance than the interpreted evaluation
+ * for
  * hot-path filtering operations.
  * <p>
  * This benchmark compares three approaches:
@@ -23,16 +25,34 @@ import java.util.function.Predicate;
  */
 public class JitExample {
 
-    @Data
-    @AllArgsConstructor
     public static class User {
         private String name;
         private int age;
         private String city;
+
+        public User(String name, int age, String city) {
+            this.name = name;
+            this.age = age;
+            this.city = city;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getAge() {
+            return age;
+        }
+
+        public String getCity() {
+            return city;
+        }
     }
 
-    private static final String[] NAMES = {"Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Henry", "Ivy", "Jack"};
-    private static final String[] CITIES = {"New York", "San Francisco", "Boston", "Chicago", "Seattle", "Austin", "Denver", "Portland"};
+    private static final String[] NAMES = { "Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Henry", "Ivy",
+            "Jack" };
+    private static final String[] CITIES = { "New York", "San Francisco", "Boston", "Chicago", "Seattle", "Austin",
+            "Denver", "Portland" };
     private static final int DATASET_SIZE = 1000;
     private static final int WARMUP_ITERATIONS = 5000;
     private static final int BENCHMARK_ITERATIONS = 50000;
@@ -125,8 +145,8 @@ public class JitExample {
         System.out.println("Expression: " + complexExpression);
         System.out.println();
 
-        Predicate<User> nativeComplexFilter = u ->
-                u.getName().toUpperCase().equals("ALICE") || (u.getAge() > 25 && !u.getCity().equals("Boston"));
+        Predicate<User> nativeComplexFilter = u -> u.getName().toUpperCase().equals("ALICE")
+                || (u.getAge() > 25 && !u.getCity().equals("Boston"));
         var interpretedComplexFilter = Fel.filter(complexExpression);
         var jitComplexFilter = Fel.filterJit(complexExpression, User.class);
 
@@ -165,7 +185,8 @@ public class JitExample {
         System.out.println("└─────────────────────┴──────────────┴─────────────┴─────────────────┘");
         System.out.println();
 
-        System.out.println("JIT vs Interpreted: " + String.format("%.2fx faster", (double) interpretedComplexTime / jitComplexTime));
+        System.out.println("JIT vs Interpreted: "
+                + String.format("%.2fx faster", (double) interpretedComplexTime / jitComplexTime));
         System.out.println("JIT vs Native: " + String.format("%.2fx", (double) jitComplexTime / nativeComplexTime));
 
         System.out.println("Writing bytecode to disk for inspection...");

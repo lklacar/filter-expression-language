@@ -15,35 +15,82 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JitCompilerTest {
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
     static class Address {
         private String city;
         private String street;
         private int number;
+
+        public Address(String city, String street, int number) {
+            this.city = city;
+            this.street = street;
+            this.number = number;
+        }
+
+        public String getCity() {
+            return city;
+        }
+
+        public String getStreet() {
+            return street;
+        }
+
+        public int getNumber() {
+            return number;
+        }
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
     static class User {
         private String name;
         private int age;
         private LocalDateTime createdAt;
         private Address address;
+
+        public User(String name, int age, LocalDateTime createdAt, Address address) {
+            this.name = name;
+            this.age = age;
+            this.createdAt = createdAt;
+            this.address = address;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getAge() {
+            return age;
+        }
+
+        public LocalDateTime getCreatedAt() {
+            return createdAt;
+        }
+
+        public Address getAddress() {
+            return address;
+        }
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Builder
     static class Product {
         private String name;
         private double price;
         private boolean inStock;
+
+        public Product(String name, double price, boolean inStock) {
+            this.name = name;
+            this.price = price;
+            this.inStock = inStock;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public double getPrice() {
+            return price;
+        }
+
+        public boolean isInStock() {
+            return inStock;
+        }
     }
 
     @Test
@@ -52,8 +99,7 @@ class JitCompilerTest {
                 new User("John", 25, LocalDateTime.now(), new Address("Belgrade", "Nemanjina", 4)),
                 new User("Jane", 30, LocalDateTime.now(), new Address("Novi Sad", "Trg Slobode", 1)),
                 new User("Mark", 35, LocalDateTime.now(), new Address("Belgrade", "Knez Mihailova", 2)),
-                new User("Marko", 35, LocalDateTime.now(), new Address("Belgrade", "Knez Mihailova", 2))
-        );
+                new User("Marko", 35, LocalDateTime.now(), new Address("Belgrade", "Knez Mihailova", 2)));
 
         var filter = Fel.filterJit("age >= 30 && address.city = 'Belgrade'");
 
@@ -70,8 +116,7 @@ class JitCompilerTest {
                 new Product("Laptop", 1200.00, true),
                 new Product("Smartphone", 700.00, false),
                 new Product("Tablet", 300.00, true),
-                new Product("Monitor", 150.00, true)
-        );
+                new Product("Monitor", 150.00, true));
 
         var filter = Fel.filterJit("price < 500 && inStock = true");
 
@@ -88,8 +133,7 @@ class JitCompilerTest {
         var users = List.of(
                 new User("Alice", 22, now.minusDays(1), new Address("Paris", "Rue de Rivoli", 7)),
                 new User("Bob", 28, now.minusMonths(6), new Address("Berlin", "Unter den Linden", 5)),
-                new User("Charlie", 35, now, new Address("London", "Baker Street", 221))
-        );
+                new User("Charlie", 35, now, new Address("London", "Baker Street", 221)));
 
         var filter = Fel.filterJit("createdAt > " + now.minusHours(3));
 
@@ -104,8 +148,7 @@ class JitCompilerTest {
         var users = List.of(
                 new User("Dave", 44, LocalDateTime.now(), new Address("New York", "Fifth Avenue", 1)),
                 new User("Eve", 34, LocalDateTime.now(), new Address("San Francisco", "Market Street", 2)),
-                new User("Frank", 29, LocalDateTime.now(), new Address("New York", "Broadway", 3))
-        );
+                new User("Frank", 29, LocalDateTime.now(), new Address("New York", "Broadway", 3)));
 
         var filter = Fel.filterJit("age > 30 && address.city = 'New York'");
 
@@ -120,8 +163,7 @@ class JitCompilerTest {
         var users = List.of(
                 new User("John", 25, LocalDateTime.now(), new Address("New York", "Fifth Avenue", 1)),
                 new User("Alice", 30, LocalDateTime.now(), new Address("Los Angeles", "Sunset Boulevard", 2)),
-                new User("Bob", 25, LocalDateTime.now(), new Address("New York", "Fifth Avenue", 1))
-        );
+                new User("Bob", 25, LocalDateTime.now(), new Address("New York", "Fifth Avenue", 1)));
 
         var filter = Fel.filterJit("! (age = 25)");
 
@@ -136,8 +178,7 @@ class JitCompilerTest {
         var users = List.of(
                 new User("John", 28, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3)),
                 new User("Alice", 22, LocalDateTime.now(), new Address("New York", "Wall Street", 12)),
-                new User("Bob", 31, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3))
-        );
+                new User("Bob", 31, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3)));
 
         var filter = Fel.filterJit("age < 25 || address.city = 'San Francisco'");
 
@@ -154,10 +195,10 @@ class JitCompilerTest {
         var users = List.of(
                 new User("John", 28, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3)),
                 new User("Alice", 22, LocalDateTime.now(), new Address("New York", "Wall Street", 12)),
-                new User("Bob", 31, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3))
-        );
+                new User("Bob", 31, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3)));
 
-        var filter = Fel.filterJit("(age >= 25 && address.city = 'San Francisco') || (age < 25 && address.city = 'New York')");
+        var filter = Fel
+                .filterJit("(age >= 25 && address.city = 'San Francisco') || (age < 25 && address.city = 'New York')");
 
         var filteredUsers = users.stream().filter(filter).toList();
 
@@ -172,8 +213,7 @@ class JitCompilerTest {
         var users = List.of(
                 new User("John", 28, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3)),
                 new User("Alice", 22, LocalDateTime.now(), new Address("New York", "Wall Street", 12)),
-                new User("Bob", 31, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3))
-        );
+                new User("Bob", 31, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3)));
 
         var filter = Fel.filterJit("age != 28");
 
@@ -189,8 +229,7 @@ class JitCompilerTest {
         var users = List.of(
                 new User("John", 28, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3)),
                 new User("Alice", 22, LocalDateTime.now(), new Address("New York", "Wall Street", 12)),
-                new User("Bob", 31, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3))
-        );
+                new User("Bob", 31, LocalDateTime.now(), new Address("San Francisco", "Market Street", 3)));
 
         var filter = Fel.filterJit("address = null");
 
@@ -204,8 +243,7 @@ class JitCompilerTest {
         var products = List.of(
                 new Product("A", 100.0, true),
                 new Product("B", 200.0, true),
-                new Product("C", 50.0, true)
-        );
+                new Product("C", 50.0, true));
 
         var filter = Fel.filterJit("price < 150");
 
@@ -221,8 +259,7 @@ class JitCompilerTest {
         var products = List.of(
                 new Product("A", 100.0, true),
                 new Product("B", 200.0, true),
-                new Product("C", 50.0, true)
-        );
+                new Product("C", 50.0, true));
 
         var filter = Fel.filterJit("price <= 100");
 
@@ -238,8 +275,7 @@ class JitCompilerTest {
         var products = List.of(
                 new Product("A", 100.0, true),
                 new Product("B", 200.0, true),
-                new Product("C", 50.0, true)
-        );
+                new Product("C", 50.0, true));
 
         var filter = Fel.filterJit("price >= 100");
 
@@ -255,8 +291,7 @@ class JitCompilerTest {
         var users = List.of(
                 new User("john", 25, LocalDateTime.now(), null),
                 new User("ALICE", 30, LocalDateTime.now(), null),
-                new User("bob", 35, LocalDateTime.now(), null)
-        );
+                new User("bob", 35, LocalDateTime.now(), null));
 
         var filter = Fel.filterJit("toUpperCase(name) = 'JOHN' || toUpperCase(name) = 'BOB'");
 
@@ -271,8 +306,7 @@ class JitCompilerTest {
     void jitFilterWithStringLiteral() {
         var users = List.of(
                 new User("John", 25, LocalDateTime.now(), null),
-                new User("Alice", 30, LocalDateTime.now(), null)
-        );
+                new User("Alice", 30, LocalDateTime.now(), null));
 
         var filter = Fel.filterJit("name = 'John'");
 
@@ -287,8 +321,7 @@ class JitCompilerTest {
         var products = List.of(
                 new Product("A", 100.0, true),
                 new Product("B", 200.0, false),
-                new Product("C", 50.0, true)
-        );
+                new Product("C", 50.0, true));
 
         var filter = Fel.filterJit("inStock = true");
 
@@ -303,8 +336,7 @@ class JitCompilerTest {
     void jitFilterWithLongLiteral() {
         var users = List.of(
                 new User("John", 25, LocalDateTime.now(), null),
-                new User("Alice", 30, LocalDateTime.now(), null)
-        );
+                new User("Alice", 30, LocalDateTime.now(), null));
 
         var filter = Fel.filterJit("age = 30");
 
@@ -319,8 +351,7 @@ class JitCompilerTest {
         var products = List.of(
                 new Product("A", 100.5, true),
                 new Product("B", 200.0, false),
-                new Product("C", 50.0, true)
-        );
+                new Product("C", 50.0, true));
 
         var filter = Fel.filterJit("price = 100.5");
 
@@ -331,7 +362,8 @@ class JitCompilerTest {
     }
 
     /**
-     * Comparison test: Ensures JIT and interpreted versions produce identical results
+     * Comparison test: Ensures JIT and interpreted versions produce identical
+     * results
      */
     @Test
     void jitAndInterpretedProduceSameResults() {
@@ -339,8 +371,7 @@ class JitCompilerTest {
                 new User("John", 25, LocalDateTime.now(), new Address("Belgrade", "Nemanjina", 4)),
                 new User("Jane", 30, LocalDateTime.now(), new Address("Novi Sad", "Trg Slobode", 1)),
                 new User("Mark", 35, LocalDateTime.now(), new Address("Belgrade", "Knez Mihailova", 2)),
-                new User("Marko", 35, LocalDateTime.now(), new Address("Belgrade", "Knez Mihailova", 2))
-        );
+                new User("Marko", 35, LocalDateTime.now(), new Address("Belgrade", "Knez Mihailova", 2)));
 
         String filterExpr = "age >= 30 && address.city = 'Belgrade'";
         var jitFilter = Fel.filterJit(filterExpr);
@@ -364,8 +395,7 @@ class JitCompilerTest {
                 new User("Alice", 22, LocalDateTime.now(), new Address("Paris", "Rue", 1)),
                 new User("Bob", 28, LocalDateTime.now(), new Address("Berlin", "Strasse", 2)),
                 new User("Charlie", 35, LocalDateTime.now(), new Address("London", "Street", 3)),
-                new User("David", 40, LocalDateTime.now(), new Address("Paris", "Avenue", 4))
-        );
+                new User("David", 40, LocalDateTime.now(), new Address("Paris", "Avenue", 4)));
 
         String filterExpr = "(age < 30 && address.city = 'Paris') || (age >= 35 && address.city != 'Berlin')";
         var jitFilter = Fel.filterJit(filterExpr);
@@ -384,8 +414,7 @@ class JitCompilerTest {
     void jitCompilerHandlesNestedDotExpression() {
         var users = List.of(
                 new User("John", 25, LocalDateTime.now(), new Address("Belgrade", "Nemanjina", 4)),
-                new User("Jane", 30, LocalDateTime.now(), new Address("Novi Sad", "Trg Slobode", 15))
-        );
+                new User("Jane", 30, LocalDateTime.now(), new Address("Novi Sad", "Trg Slobode", 15)));
 
         var filter = Fel.filterJit("address.number > 10");
 
@@ -398,8 +427,7 @@ class JitCompilerTest {
     @Test
     void jitCompilerHandlesShortCircuitAnd() {
         var users = List.of(
-                new User("John", 25, LocalDateTime.now(), null)
-        );
+                new User("John", 25, LocalDateTime.now(), null));
 
         // This should short-circuit and not throw NPE
         var filter = Fel.filterJit("age > 30 && address.city = 'Belgrade'");
@@ -412,8 +440,7 @@ class JitCompilerTest {
     @Test
     void jitCompilerHandlesShortCircuitOr() {
         var users = List.of(
-                new User("John", 25, LocalDateTime.now(), null)
-        );
+                new User("John", 25, LocalDateTime.now(), null));
 
         // This should short-circuit and not evaluate address.city
         var filter = Fel.filterJit("age = 25 || address.city = 'Belgrade'");
