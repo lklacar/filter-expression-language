@@ -17,9 +17,14 @@ class ValueOperationsTest {
         assertTrue(longVal.equal(doubleVal));
         assertTrue(doubleVal.equal(longVal));
         assertTrue(doubleVal.greaterThan(new LongValue(4L)));
+        assertTrue(new LongValue(6L).greaterThan(new DoubleValue(5.0)));
+        assertFalse(new LongValue(4L).greaterThan(new LongValue(5L)));
+        assertFalse(new LongValue(4L).greaterThan(new DoubleValue(5.0)));
         assertTrue(longVal.lessThan(new DoubleValue(6.0)));
         assertTrue(longVal.greaterThanOrEquals(new DoubleValue(5.0)));
         assertTrue(doubleVal.lessThanOrEquals(new LongValue(5L)));
+        assertTrue(longVal.lessThanOrEquals(new DoubleValue(5.0)));
+        assertFalse(longVal.lessThanOrEquals(new LongValue(4L)));
         assertThrows(FilterException.class, longVal::asBoolean);
     }
 

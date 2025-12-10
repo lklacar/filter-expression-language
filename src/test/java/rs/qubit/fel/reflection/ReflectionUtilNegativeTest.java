@@ -19,4 +19,15 @@ class ReflectionUtilNegativeTest {
         }
         assertThrows(FilterException.class, () -> ReflectionUtil.accessField(new Simple(), "absent"));
     }
+
+    @Test
+    void getterFailureIsWrapped() {
+        class ThrowingGetter {
+            public String getValue() {
+                throw new IllegalStateException("boom");
+            }
+        }
+
+        assertThrows(FilterException.class, () -> ReflectionUtil.accessField(new ThrowingGetter(), "value"));
+    }
 }

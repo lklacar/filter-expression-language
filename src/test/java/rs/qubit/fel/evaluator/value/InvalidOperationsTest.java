@@ -23,4 +23,14 @@ class InvalidOperationsTest {
     void dateTimeVsLongThrows() {
         assertThrows(FilterException.class, () -> new DateTimeValue(LocalDateTime.now()).lessThanOrEquals(new LongValue(1L)));
     }
+
+    @Test
+    void longComparisonDefaultBranchesThrow() {
+        var longValue = new LongValue(2L);
+
+        assertThrows(FilterException.class, () -> longValue.greaterThan(new StringValue("x")));
+        assertThrows(FilterException.class, () -> longValue.lessThan(new BooleanValue(true)));
+        assertThrows(FilterException.class, () -> longValue.lessThanOrEquals(new StringValue("x")));
+        assertThrows(FilterException.class, () -> longValue.greaterThanOrEquals(new BooleanValue(false)));
+    }
 }
