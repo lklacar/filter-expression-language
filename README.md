@@ -1,4 +1,4 @@
-# Filter Expression Language (FEL)
+# Filter Expression Language (FEL) ![Coverage](.github/badges/jacoco.svg?raw=1)
 
 Filter Expression Language (FEL) is a lightweight, open-source Java library that simplifies filtering collections of objects using human-readable string expressions. FEL aims to provide an intuitive and flexible way to apply filters to your data without writing verbose and complex code.
 
@@ -318,6 +318,10 @@ mvn test-compile exec:java \
   -Dexec.mainClass="rs.qubit.fel.jit.JitExample" \
   -Dexec.classpathScope=test
 ```
+
+### Coverage (local)
+
+Run `mvn test` to generate JaCoCo coverage. The HTML report lives at `target/site/jacoco/index.html`. Latest local run (with generated code excluded): **86.7% lines**, **60.6% branches**.
 
 The benchmark compares three implementations:
 1. **Native Java** - Hand-written Java lambda (baseline)
