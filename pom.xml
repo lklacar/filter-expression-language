@@ -74,9 +74,12 @@
                         </goals>
                         <configuration>
                             <excludes>
-                                <exclude>rs/qubit/fel/parser/generated/**/*</exclude>
-                                <exclude>rs/qubit/fel/jit/JitExample.class</exclude>
-                                <exclude>rs/qubit/fel/jit/JitExample$*.class</exclude>
+                                <exclude>**/rs/qubit/fel/parser/generated/**</exclude>
+                                <exclude>**/rs/qubit/fel/jit/jmh_generated/**</exclude>
+                                <exclude>**/rs/qubit/fel/jit/JitBenchmark$BenchmarkState.class</exclude>
+                                <exclude>**/rs/qubit/fel/jit/JitBenchmark.class</exclude>
+                                <exclude>**/rs/qubit/fel/jit/JitExample.class</exclude>
+                                <exclude>**/rs/qubit/fel/jit/JitExample$*.class</exclude>
                             </excludes>
                             <formats>
                                 <format>HTML</format>
